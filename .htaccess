@@ -1,0 +1,9 @@
+AddDefaultCharset UTF-8
+
+AddType application/x-httpd-php .php .phtml .htm .html
+DirectoryIndex index.htm index.php
+
+Authtype Basic
+AuthName "Restricted area"
+AuthUserFile c:\OpenServer\domains\7hl\htdocs\calc3\.htpasswd
+Require valid-user
