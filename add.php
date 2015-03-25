@@ -15,8 +15,8 @@ mysql_query( 'SET NAMES utf8' );
 
 print( "<script type=\"text/javascript\" src=\"ckeditor/ckeditor.js\"></script>\n" );
 echo "<pre>";
-//echo "<H1>REQUEST</H1>";
-//var_dump($_REQUEST);
+echo "<H1>REQUEST</H1>";
+var_dump($_REQUEST);
 //echo "<H1>FILES</H1>";
 //var_dump($_FILES);
 //echo "<H1>POST</H1>";

@@ -402,10 +402,12 @@ function save() {
     //    $_GET[ "new_articul" ], $_GET[ "new_category" ], $_GET[ "new_subcategory" ], $_GET[ "new_name" ], $final_price, $parts );
 
     $product_id = intval( filter_input( INPUT_POST, "product_id", FILTER_VALIDATE_INT ) );
+    $edit_product_id = $product_id;
     $duplicate = intval( filter_input( INPUT_POST, "duplicate", FILTER_VALIDATE_INT ) );
     if( $product_id == 0 || $duplicate == 1 ) {
+        // Новый товар или дублирование
         echo "<h2>Добавление</h2>\n";
-        // Добавление категории и подкатегории
+        // Реализовать добавление категории и подкатегории
         $q = sprintf( "INSERT INTO ps_product (id_supplier, id_manufacturer, id_category_default, id_tax_rules_group, active, price, reference, redirect_type, unity, ean13, upc, supplier_reference, location, indexed, cache_default_attribute, date_add, date_upd, parts, content_desc ) 
     VALUES(1, 1, {$categoryId}, 1, 1, {$final_price}, '{$_REQUEST[ "new_articul" ]}', '', '', 0, '', '', '', 1, 0, '2015-03-18 21:40:59', '2015-03-18 21:40:59', '{$parts}', '{$content_description}')" );
         if( !mysql_query( $q ) ) {
@@ -441,63 +443,6 @@ function save() {
             return false;
         }
         print( "Добавлена запись в ps_product_shop<br>\n" );
-
-        // Добавление изображения товара
-        if( count( $_FILES ) > 0 ) {
-            // Добвляем необходимую информацию в БД
-            $q = sprintf( "INSERT INTO `ps_image` ( `id_image`, `id_product`, `position`,`cover`) VALUES (NULL, {$product_id},'1','1')" );
-            if( !mysql_query( $q ) ) {
-                print( "Ошибка при добавлении в ps_image: " . mysql_error() );
-                return false;
-            }
-            print( "Добавлена запись в ps_image<br>\n" );
-            // Запоминаем id нового изображения
-            $image_id = mysql_insert_id();
-
-            $q = sprintf( "INSERT INTO `ps_image_lang` ( `id_image`, `id_lang`,`legend`) VALUES ({$image_id},'1',NULL)" );
-            if( !mysql_query( $q ) ) {
-                print( "Ошибка при добавлении в ps_image_lang: " . mysql_error() );
-                return false;
-            }
-            print( "Добавлена запись в ps_image_lang<br>\n" );
-
-            $q = sprintf( "INSERT INTO `ps_image_shop` ( `id_image`, `id_shop`,`cover`) VALUES ({$image_id},'1','1')" );
-            if( !mysql_query( $q ) ) {
-                print( "Ошибка при добавлении в ps_image_shop: " . mysql_error() );
-                return false;
-            }
-            print( "Добавлена запись в ps_image_shop<br>\n" );
-
-            // Сохраняем изображение на срвере
-            // Добавить проверки
-            $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( $image_id, 1 ) );
-            print( "mkdir: " . $images_path . "<br>\n" );
-            mkdir( $images_path, 0777, true );
-            $images_path .= "/";
-            print( "Перемещаем файл " . $images_path . $image_id . ".jpg : \n" );
-            if( move_uploaded_file( $_FILES[ "new_image" ][ "tmp_name" ], $images_path . $image_id . ".jpg" ) ) {
-                // Создаём миниатюры
-                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
-                $thumb->adaptiveResize(124, 124);
-                $thumb->save( $images_path . $image_id . "-home_default.jpg", "jpg" );
-
-                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
-                $thumb->adaptiveResize(264, 264);
-                $thumb->save( $images_path . $image_id . "-large_default.jpg", "jpg" );
-
-                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
-                $thumb->adaptiveResize(58, 58);
-                $thumb->save( $images_path . $image_id . "-medium_default.jpg", "jpg" );
-
-                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
-                $thumb->adaptiveResize(45, 45);
-                $thumb->save( $images_path . $image_id . "-small_default.jpg", "jpg" );
-
-                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
-                $thumb->adaptiveResize(600, 600);
-                $thumb->save( $images_path . $image_id . "-thickbox_default.jpg", "jpg" );
-            }
-        }
     } else { // Конец добавления
         // Обновление (редактирование) товара '2015-03-18 21:40:59'
         echo "<h2>Обновление</h2>\n";
@@ -549,6 +494,91 @@ function save() {
         }
         print( "Обновлена запись в ps_product_shop<br>\n" );
         
+    }
+    // Добавление изображения товара
+    if( $_FILES[ "new_image" ][ "name" ] != "" || $duplicate == 1 ) {
+        // Добвляем необходимую информацию в БД
+        $q = sprintf( "INSERT INTO `ps_image` ( `id_image`, `id_product`, `position`,`cover`) VALUES (NULL, {$product_id},'1','1')" );
+        if( !mysql_query( $q ) ) {
+            print( "Ошибка при добавлении в ps_image: " . mysql_error() );
+            return false;
+        }
+        print( "Добавлена запись в ps_image<br>\n" );
+        // Запоминаем id нового изображения
+        $image_id = mysql_insert_id();
+
+        $q = sprintf( "INSERT INTO `ps_image_lang` ( `id_image`, `id_lang`,`legend`) VALUES ({$image_id},'1',NULL)" );
+        if( !mysql_query( $q ) ) {
+            print( "Ошибка при добавлении в ps_image_lang: " . mysql_error() );
+            return false;
+        }
+        print( "Добавлена запись в ps_image_lang<br>\n" );
+
+        $q = sprintf( "INSERT INTO `ps_image_shop` ( `id_image`, `id_shop`,`cover`) VALUES ({$image_id},'1','1')" );
+        if( !mysql_query( $q ) ) {
+            print( "Ошибка при добавлении в ps_image_shop: " . mysql_error() );
+            return false;
+        }
+        print( "Добавлена запись в ps_image_shop<br>\n" );
+        $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( $image_id, 1 ) );
+        print( "mkdir: " . $images_path . "<br>\n" );
+        mkdir( $images_path, 0777, true );
+        $images_path .= "/";
+        if( $_FILES[ "new_image" ][ "name" ] != "" ) {
+            // Сохраняем изображение на срвере
+            // Добавить проверки
+            //print( "Перемещаем файл " . $images_path . $image_id . ".jpg : \n" );
+            echo "UPLOAD<br>\n";
+            var_dump( $_FILES );
+            if( move_uploaded_file( $_FILES[ "new_image" ][ "tmp_name" ], $images_path . $image_id . ".jpg" ) ) {
+                // Создаём миниатюры
+                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
+                $thumb->adaptiveResize(124, 124);
+                $thumb->save( $images_path . $image_id . "-home_default.jpg", "jpg" );
+
+                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
+                $thumb->adaptiveResize(264, 264);
+                $thumb->save( $images_path . $image_id . "-large_default.jpg", "jpg" );
+
+                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
+                $thumb->adaptiveResize(58, 58);
+                $thumb->save( $images_path . $image_id . "-medium_default.jpg", "jpg" );
+
+                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
+                $thumb->adaptiveResize(45, 45);
+                $thumb->save( $images_path . $image_id . "-small_default.jpg", "jpg" );
+
+                $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
+                $thumb->adaptiveResize(600, 600);
+                $thumb->save( $images_path . $image_id . "-thickbox_default.jpg", "jpg" );
+            }
+        } else {
+            // Дублирование товара, новая картинка не задана - копируем изображение из исходного товара
+            // Определяем id изображения исходного товара
+            if( $res = mysql_query( "SELECT id_image FROM ps_image WHERE id_product={$edit_product_id}" ) ) {
+                $data = mysql_fetch_assoc( $res );
+                if( strlen( $data[ "id_image" ] ) > 0 ) {
+                    // Найден id изображения из иходного товара 
+                    $src_images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( $data[ "id_image" ], 1 ) );
+                    //mkdir( $dest_images_path, 0777, true );
+                    print( "src_dir: " . $src_images_path . "<br>\n" );
+                    // Копируем все файлы
+                    foreach( glob( $src_images_path . "/*.jpg" ) as $filename ) {
+                        $pos = strpos( basename( $filename ), "-" );
+                        if( $pos === false ) {
+                            $pos = strpos( basename( $filename ), "." );
+                        }
+                        $new_name = substr( basename( $filename ), $pos );
+                        printf( "%s -> %s<br>\n", $filename, $images_path . $image_id . $new_name );
+                        copy( $filename, $images_path . $image_id . $new_name );
+                    }
+                } else {
+                    echo "BAD id_image: " . $data[ "id_image" ];
+                }
+            } else {
+                echo "ERROR: " . mysql_error();
+            }
+        }
     }
     return $product_id;
 }
