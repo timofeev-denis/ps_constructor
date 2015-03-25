@@ -32,10 +32,9 @@ function print_table_row($row) {
 function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
     global $CONFIG;
 ?>
-    <div class="component">
+    <div class="component" data-number='<?=$num?>'>
         <!-- Компонент №1 -->
         <div class="param w200">
-            <?php if( $num == 1) print( "Категория:<br>" ); ?>
             <select class='item_category new' data-number='<?=$num?>' name="item_category[]">
                 <option value='-'>-</option>
             <?php
@@ -58,7 +57,6 @@ function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
             </select>
         </div>
         <div class="param w200">
-            <?php if( $num == 1) print( "Подкатегория:<br>" ); ?>
             <?php
             if( intval( $tid ) > 0 ) {
                 // Есть компонент №1
@@ -83,7 +81,6 @@ function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
             </select>
         </div>
         <div class="param w200">
-            <?php if( $num == 1) print( "Название - цена:<br>" ); ?>
             <?php
             $item_name_value = "";
             if( intval( $tid ) > 0 ) {
@@ -113,8 +110,10 @@ function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
             <input type="hidden" class="item_tid" name="item_tid[]" data-number='<?=$num?>' value="<?=$tid?>" />
         </div>
         <div class="param w100">
-            <?php if( $num == 1) print( "Количество:<br>" ); ?>
             <input type='text' name='qty[]' class='item_qty' value="<?=$qty?>">
+        </div>
+        <div class="param w100">
+            <input type='button' class='remove_item' data-number='<?=$num?>' value="-">
         </div>
         <div class="clearfix"></div>
     </div>
@@ -273,6 +272,24 @@ function print_add_form() {
     
     <h3>Состав нового товара:</h3>
     <div id="parts">
+        <div class="components_title">
+                <div class="param w200">
+                        Категория:<br>
+                </div>
+                <div class="param w200">
+                        Подкатегория:<br>
+                </div>
+                <div class="param w200">
+                        Название - цена:<br>
+                </div>
+                <div class="param w100">
+                        Кол-во:<br>
+                </div>
+                <div class="param w100">
+                        Удалить<br>
+                </div>
+                <div class="clearfix"></div>
+        </div>
     <?php
     //print_r( $parts );
     //print_r( $items );
