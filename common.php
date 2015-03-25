@@ -32,7 +32,6 @@ function print_table_row($row) {
 function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
     global $CONFIG;
 ?>
-
     <div class="component">
         <!-- Компонент №1 -->
         <div class="param w200">
