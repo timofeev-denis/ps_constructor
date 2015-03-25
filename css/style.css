@@ -117,3 +117,7 @@ h3 {
     padding: 0 3px;
     color: #000;
 }
+
+.ui-dialog-content h6 {
+    font-size: 1.0em;
+}

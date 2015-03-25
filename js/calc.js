@@ -23,11 +23,6 @@ $( document ).ready( function() {
         $(".item_tid[data-number='" + num + "']").val( $( this ).find("option:selected").data( "parttid" ) );
     });
     
-    $( ".duplicate" ).click( function() {
-        var num = $( this ).data( "tid" );
-        console.log(num);
-    });
-    
     $( "#new_category" ).change(function() {
         //console.log( $(this).val() );
 //      $("#new_subcategory option").remove();
@@ -135,5 +130,42 @@ $( document ).ready( function() {
     $( document.body ).on( "click", ".remove_item", function() {
         var num = $(this).data( "number" );
         $( ".component[data-number='" + num + "']" ).remove();
+    });
+    
+    $(".delete").click(function() {
+        var id_product = $(this).data( "id_product" );
+//        console.log( num );
+    $('<div></div>').appendTo('body')
+        .html( "<div>Данный товар будет удалён:<h4>[" + $(this).data( "product_reference" ) + "] " + $(this).data( "product_name" ) + "</h4>Продолжить?</div>" )
+        .dialog({
+            modal: true,
+            title: 'Удаление товара',
+            zIndex: 10000,
+            autoOpen: true,
+            width: 'auto',
+            resizable: false,
+            buttons: {
+                Да: function () {
+                    $.ajax({
+                        //dataType: "json",
+                        url: "delete_goods.php",
+                        data: {id: id_product},
+                        success: function(data) {
+                            console.log( data );
+                            location.reload();
+                            //console.log( "DELETED: " + data );
+                            //$(".item[data-number='" + num + "'] option").remove();
+                        }
+                    });
+                    $(this).dialog("close");
+                },
+                Нет: function () {
+                    $(this).dialog("close");
+                }
+            },
+            close: function (event, ui) {
+                $(this).remove();
+            }
+        });            
     });
 });

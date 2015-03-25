@@ -22,7 +22,7 @@ function print_table_row($row) {
 <tr>
     <td>
         <a href='add.php?product_id=%s&duplicate=1' target='_blank'><i class='fa fa-files-o duplicate' title='Дублировать'></i></a>
-        <i class='fa fa-trash-o delete' data-tid='%s' title='Удалить'></i>
+        <i class='fa fa-trash-o delete' data-id_product='%s' data-product_name='%s' data-product_reference='%s' title='Удалить'></i>
     </td>
     <td>%s</td>
     <td><a href='add.php?product_id=%s' target='_blank'>%s</a></td>
@@ -30,8 +30,10 @@ function print_table_row($row) {
     <td>%s</td>
     <td>%.2f</td>
     <td>%.2f</td>
-</tr>\n\n", $row[ "id_product" ], $row[ "id_product" ], $row[ "reference" ], $row[ "id_product" ], $row[ "pname" ], $row[ "content_desc" ], $row[ "cname" ]
-            , $row[ "price" ], $row[ "price" ] * 1.18 );
+</tr>\n\n", $row[ "id_product" ], $row[ "id_product" ], $row[ "pname" ], 
+            $row[ "reference" ], $row[ "reference" ], $row[ "id_product" ], 
+            $row[ "pname" ], $row[ "content_desc" ], $row[ "cname" ], 
+            $row[ "price" ], $row[ "price" ] * 1.18 );
 }
 
 function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
