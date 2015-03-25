@@ -152,7 +152,7 @@ $( document ).ready( function() {
                         data: {id: id_product},
                         success: function(data) {
                             console.log( data );
-                            location.reload();
+                            //location.reload();
                             //console.log( "DELETED: " + data );
                             //$(".item[data-number='" + num + "'] option").remove();
                         }

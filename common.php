@@ -328,10 +328,8 @@ function print_add_form( $product_id = 0 ) {
     
     <div class="clearfix"></div>
 
-    <div class="buttons11">
+    <div>
         <input type='submit' id="create" name="create" value='Сохранить' />
-        <input type="submit" id="duplicate" name="duplicate" value='Копировать' />
-        <input type="submit" value="TEST" />
     </div>
     </form>
     <?php
@@ -497,6 +495,10 @@ function save() {
     }
     // Добавление изображения товара
     if( $_FILES[ "new_image" ][ "name" ] != "" || $duplicate == 1 ) {
+        if( $edit_product_id == $product_id ) {
+            //echo "<h1>EDIT IMAGE</h1>\n";
+            delete_product_image( $edit_product_id );
+        }
         // Добвляем необходимую информацию в БД
         $q = sprintf( "INSERT INTO `ps_image` ( `id_image`, `id_product`, `position`,`cover`) VALUES (NULL, {$product_id},'1','1')" );
         if( !mysql_query( $q ) ) {
@@ -521,15 +523,15 @@ function save() {
         }
         print( "Добавлена запись в ps_image_shop<br>\n" );
         $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( $image_id, 1 ) );
-        print( "mkdir: " . $images_path . "<br>\n" );
+        //print( "mkdir: " . $images_path . "<br>\n" );
         mkdir( $images_path, 0777, true );
         $images_path .= "/";
         if( $_FILES[ "new_image" ][ "name" ] != "" ) {
             // Сохраняем изображение на срвере
             // Добавить проверки
             //print( "Перемещаем файл " . $images_path . $image_id . ".jpg : \n" );
-            echo "UPLOAD<br>\n";
-            var_dump( $_FILES );
+            //echo "UPLOAD<br>\n";
+            //var_dump( $_FILES );
             if( move_uploaded_file( $_FILES[ "new_image" ][ "tmp_name" ], $images_path . $image_id . ".jpg" ) ) {
                 // Создаём миниатюры
                 $thumb = PhpThumbFactory::create( $images_path . $image_id . ".jpg" );
@@ -581,6 +583,41 @@ function save() {
         }
     }
     return $product_id;
+}
+
+function delete_product_image( $product_id ) {
+    global $CONFIG;
+    if( !$res = mysql_query( "SELECT id_image FROM ps_image WHERE id_product = {$product_id} ORDER BY cover DESC" ) ) {
+        return false;
+    }
+    $data = mysql_fetch_assoc( $res );
+    $id_image = $data[ "id_image" ];
+    if( !mysql_query( "DELETE FROM ps_image WHERE id_image = {$id_image} OR id_product={$product_id}" ) ) {
+        print( "ERROR (__FILE__:__LINE__): " . mysql_error() );
+        mysql_query("ROLLBACK");
+        return false;
+    }
+    if( !mysql_query( "DELETE FROM ps_image_lang WHERE id_image = {$id_image}" ) ) {
+        print( "ERROR (__FILE__:__LINE__): " . mysql_error() );
+        mysql_query("ROLLBACK");
+        return false;
+    }
+    if( !mysql_query( "DELETE FROM ps_image_shop WHERE id_image = {$id_image}" ) ) {
+        print( "ERROR (__FILE__:__LINE__): " . mysql_error() );
+        mysql_query("ROLLBACK");
+        return false;
+    }
+    // Delete files
+    $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( $data[ "id_image" ], 1 ) );
+    //echo "Trying to delete folder: " . $images_path . "<br>\n";
+    if ( strtoupper( substr( PHP_OS, 0, 3 ) === "WIN" ) ) {
+        //echo "WINDOWS [" . $images_path . "]\n";
+        //var_dump( exec( "rd /s /q \"{$images_path}\"" ) );
+    } else {
+        //echo "*NiX: " . PHP_OS . $images_path . "]\n";
+        //var_dump( exec("rm -rf \"{$images_path}\"") );
+    }
+    return true;
 }
 
 if( $num = filter_input( INPUT_GET, "num", FILTER_VALIDATE_INT ) ) {

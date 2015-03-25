@@ -31,6 +31,7 @@ $result = mysql_query("SELECT p.*, pl.name pname, pl.description, cl.name cname
 FROM {$CONFIG['ps_product']} p, {$CONFIG['ps_product_lang']} pl, {$CONFIG['ps_category_lang']} cl 
 WHERE p.id_product = pl.id_product 
       AND pl.id_lang=1 
+      AND cl.id_lang=1 
       AND cl.id_category=p.id_category_default
       AND p.active=1
 ORDER BY id_product DESC LIMIT 0, 20");
