@@ -34,7 +34,7 @@ WHERE p.id_product = pl.id_product
       AND cl.id_lang=1 
       AND cl.id_category=p.id_category_default
       AND p.active=1
-ORDER BY id_product DESC LIMIT 0, 20");
+ORDER BY id_product DESC");
 if( $result ) {
     while ($row = mysql_fetch_array($result)) {
         print_table_row( $row );

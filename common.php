@@ -406,8 +406,9 @@ function save() {
         // Новый товар или дублирование
         echo "<h2>Добавление</h2>\n";
         // Реализовать добавление категории и подкатегории
+        $date_upd = date( "Y-m-d H:i:s" );
         $q = sprintf( "INSERT INTO ps_product (id_supplier, id_manufacturer, id_category_default, id_tax_rules_group, active, price, reference, redirect_type, unity, ean13, upc, supplier_reference, location, indexed, cache_default_attribute, date_add, date_upd, parts, content_desc ) 
-    VALUES(1, 1, {$categoryId}, 1, 1, {$final_price}, '{$_REQUEST[ "new_articul" ]}', '', '', 0, '', '', '', 1, 0, '2015-03-18 21:40:59', '2015-03-18 21:40:59', '{$parts}', '{$content_description}')" );
+    VALUES(1, 1, {$categoryId}, 1, 1, {$final_price}, '{$_REQUEST[ "new_articul" ]}', '', '', 0, '', '', '', 1, 0, '{$date_upd}', '{$date_upd}', '{$parts}', '{$content_description}')" );
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_product: " . mysql_error() . "<br>\n");
             print( "Текст запроса: " . $q . "<br>\n");
@@ -434,7 +435,7 @@ function save() {
 
         $q = sprintf( "INSERT INTO `ps_product_shop` 
     (`id_product`,`id_shop`,`id_category_default`,`id_tax_rules_group`,`on_sale`,`online_only`,`ecotax`,`minimal_quantity`,`price`,`wholesale_price`,`unity`,`unit_price_ratio`,`additional_shipping_cost`,`customizable`,`uploadable_files`,`text_fields`,`active`,`redirect_type`,`id_product_redirected`,`available_for_order`,`available_date`,`condition`,`show_price`,`indexed`,`visibility`,`cache_default_attribute`,`advanced_stock_management`,`date_add`,`date_upd`) 
-    VALUES ({$product_id},1,{$categoryId},1,0,0,0,1,{$final_price},0,'',0,0,0,0,0,1,'',0,1,'0000-00-00','new',1,1,'both','',0,'0000-00-00 00:00:00','0000-00-00 00:00:00');
+    VALUES ({$product_id},1,{$categoryId},1,0,0,0,1,{$final_price},0,'',0,0,0,0,0,1,'',0,1,'0000-00-00','new',1,1,'both','',0,'{$date_upd}','{$date_upd}');
     " );
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_product_shop: " . mysql_error() );
