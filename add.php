@@ -15,8 +15,8 @@ mysql_query( 'SET NAMES utf8' );
 
 print( "<script type=\"text/javascript\" src=\"ckeditor/ckeditor.js\"></script>\n" );
 echo "<pre>";
-echo "<H1>REQUEST</H1>";
-var_dump($_REQUEST);
+//echo "<H1>REQUEST</H1>";
+//var_dump($_REQUEST);
 //echo "<H1>FILES</H1>";
 //var_dump($_FILES);
 //echo "<H1>POST</H1>";
@@ -24,13 +24,12 @@ var_dump($_REQUEST);
 echo "</pre>";
 
 if( isset( $_REQUEST[ "create" ] ) ) {
-    save();
-} else if( isset( $_REQUEST[ "duplicate" ] ) ) {
-    duplicate_goods();
+    $product_id = save();
+} else {
+    $product_id = 0;
 }
 
-include './menu.html';
-print_add_form();
+print_add_form( $product_id );
 
 mysql_close();
 ?>

@@ -3,9 +3,10 @@
 function print_table_header() {
     print( "<h3>Последние добавленные товары:</h3>\n" );
     print( "<table width=100% border=1>\n" );
+    print( "<th width=4%%></th>\n" );
     print( "<th width=6%%>Артикул</th>\n" );
     print( "<th width=15%%>Название</th>\n" );
-    print( "<th width=52%%>Состав</th>\n" );
+    print( "<th width=48%%>Состав</th>\n" );
     print( "<th width=15%%>Категория</th>\n" );
 //    print( "<th>Подкатегория</th>\n" );
 //    print( "<th>Закупочная</th>\n" );
@@ -19,13 +20,17 @@ function print_table_footer() {
 function print_table_row($row) {
     printf( "
 <tr>
+    <td>
+        <a href='add.php?product_id=%s&duplicate=1' target='_blank'><i class='fa fa-files-o duplicate' title='Дублировать'></i></a>
+        <i class='fa fa-trash-o delete' data-tid='%s' title='Удалить'></i>
+    </td>
     <td>%s</td>
     <td><a href='add.php?product_id=%s' target='_blank'>%s</a></td>
     <td>%s</td>
     <td>%s</td>
     <td>%.2f</td>
     <td>%.2f</td>
-</tr>\n\n", $row[ "reference" ], $row[ "id_product" ], $row[ "pname" ], $row[ "content_desc" ], $row[ "cname" ]
+</tr>\n\n", $row[ "id_product" ], $row[ "id_product" ], $row[ "reference" ], $row[ "id_product" ], $row[ "pname" ], $row[ "content_desc" ], $row[ "cname" ]
             , $row[ "price" ], $row[ "price" ] * 1.18 );
 }
 
@@ -120,10 +125,13 @@ function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
 <?php
 }
 
-function print_add_form() {
+function print_add_form( $product_id = 0 ) {
     global $CONFIG;
     $product = array();
-    if( $product_id = filter_input( INPUT_GET, "product_id", FILTER_VALIDATE_INT ) ) {
+    if( $product_id == 0 ) {
+        $product_id = filter_input( INPUT_GET, "product_id", FILTER_VALIDATE_INT );
+    }
+    if( $product_id ) {
         // Редактирование
         $res = mysql_query("SELECT p.*, pl.name pname, pl.description, cl.name cname 
         FROM {$CONFIG['ps_product']} p, {$CONFIG['ps_product_lang']} pl, {$CONFIG['ps_category_lang']} cl 
@@ -171,6 +179,7 @@ function print_add_form() {
     <FORM enctype="multipart/form-data" action="add.php" method="POST">
     <div class="part">        
         <input type="hidden" name="product_id" value="<?=$product_id?>" />
+        <input type="hidden" name="duplicate" value="<?=intval( filter_input( INPUT_GET, "duplicate", FILTER_VALIDATE_INT ) )?>" />
         <h3>Параметры нового товара:</h3>
         <div class="param w200">
             <label for='new_name'>Название: </label><br>
@@ -346,7 +355,7 @@ function save() {
     global $CONFIG;
     if( $_REQUEST[ "new_name" ] == "" || $_REQUEST[ "new_articul" ] == "" || 
         $_REQUEST[ "new_category" ] == "" ) {
-        print( "Товар не добавлен, так как не указаны его параметры." );
+        print( "Товар не сохранён, так как не указаны его параметры." );
         return false;
     }
     $categoryId = intval( $_REQUEST[ "new_subcategory" ] );
@@ -384,14 +393,15 @@ function save() {
     $parts[ "multiplier" ] = intval( $_REQUEST[ "new_multiplier" ] );
     $parts = serialize( $parts );
     if( $final_price == 0 ) {
-        print( "Товар не добавлен, так как не указаны его составные части." );
+        print( "Товар не сохранён, так как не указаны его составные части." );
         return false;
     }
     //$q = sprintf( "INSERT INTO goods (articul, category, subcategory, name, retail_price, price, small_scale_price, parts) VALUES ( '%s', '%s', '%s', '%s', '%s', 0, 0, '%s' )",
     //    $_GET[ "new_articul" ], $_GET[ "new_category" ], $_GET[ "new_subcategory" ], $_GET[ "new_name" ], $final_price, $parts );
 
     $product_id = intval( filter_input( INPUT_POST, "product_id", FILTER_VALIDATE_INT ) );
-    if( $product_id == 0 ) {
+    $duplicate = intval( filter_input( INPUT_POST, "duplicate", FILTER_VALIDATE_INT ) );
+    if( $product_id == 0 || $duplicate == 1 ) {
         echo "<h2>Добавление</h2>\n";
         // Добавление категории и подкатегории
         $q = sprintf( "INSERT INTO ps_product (id_supplier, id_manufacturer, id_category_default, id_tax_rules_group, active, price, reference, redirect_type, unity, ean13, upc, supplier_reference, location, indexed, cache_default_attribute, date_add, date_upd, parts, content_desc ) 
@@ -399,7 +409,7 @@ function save() {
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_product: " . mysql_error() . "<br>\n");
             print( "Текст запроса: " . $q . "<br>\n");
-            return;
+            return false;
         }
         $product_id = mysql_insert_id();
         print( "Добавлена запись в ps_product, id = " . $product_id . "<br>\n");
@@ -407,7 +417,7 @@ function save() {
         $q = sprintf( "INSERT INTO `ps_category_product` (`id_category`,`id_product`,`position`) VALUES ({$categoryId},{$product_id},0)" );
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_category_product: " . mysql_error() );
-            return;
+            return false;
         }
         print( "Добавлена запись в ps_category_product<br>\n" );
 
@@ -416,7 +426,7 @@ function save() {
     VALUES ({$product_id}, 1, 1, '{$_REQUEST[ "new_description" ]}', 'Short desc', '', '', '', '', '{$_REQUEST[ "new_name" ]}', '', '')" );
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_product_lang: " . mysql_error() );
-            return;
+            return false;
         }
         print( "Добавлена запись в ps_product_lang<br>\n" );
 
@@ -426,7 +436,7 @@ function save() {
     " );
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_product_shop: " . mysql_error() );
-            return;
+            return false;
         }
         print( "Добавлена запись в ps_product_shop<br>\n" );
 
@@ -436,7 +446,7 @@ function save() {
             $q = sprintf( "INSERT INTO `ps_image` ( `id_image`, `id_product`, `position`,`cover`) VALUES (NULL, {$product_id},'1','1')" );
             if( !mysql_query( $q ) ) {
                 print( "Ошибка при добавлении в ps_image: " . mysql_error() );
-                return;
+                return false;
             }
             print( "Добавлена запись в ps_image<br>\n" );
             // Запоминаем id нового изображения
@@ -445,14 +455,14 @@ function save() {
             $q = sprintf( "INSERT INTO `ps_image_lang` ( `id_image`, `id_lang`,`legend`) VALUES ({$image_id},'1',NULL)" );
             if( !mysql_query( $q ) ) {
                 print( "Ошибка при добавлении в ps_image_lang: " . mysql_error() );
-                return;
+                return false;
             }
             print( "Добавлена запись в ps_image_lang<br>\n" );
 
             $q = sprintf( "INSERT INTO `ps_image_shop` ( `id_image`, `id_shop`,`cover`) VALUES ({$image_id},'1','1')" );
             if( !mysql_query( $q ) ) {
                 print( "Ошибка при добавлении в ps_image_shop: " . mysql_error() );
-                return;
+                return false;
             }
             print( "Добавлена запись в ps_image_shop<br>\n" );
 
@@ -502,14 +512,14 @@ function save() {
         if( !mysql_query( $q ) ) {
             print( "Ошибка при обновлении ps_product: " . mysql_error() . "<br>\n" );
             print( "Текст запроса: " . $q . "<br>\n");
-            return;
+            return false;
         }
         print( "Обновлена запись в ps_product, id = " . $product_id . "<br>\n" );
 
         $q = "UPDATE `ps_category_product` SET id_category={$categoryId} WHERE id_product={$product_id}";
         if( !mysql_query( $q ) ) {
             print( "Ошибка при обновлении ps_category_product: " . mysql_error() );
-            return;
+            return false;
         }
         print( "Обновлена запись в ps_category_product<br>\n" );
 
@@ -521,7 +531,7 @@ function save() {
         
         if( !mysql_query( $q ) ) {
             print( "Ошибка при обновлении ps_product_lang: " . mysql_error() );
-            return;
+            return false;
         }
         print( "Обновлена запись в ps_product_lang<br>\n" );
         
@@ -533,17 +543,12 @@ function save() {
                 . "WHERE id_product={$product_id}";
         if( !mysql_query( $q ) ) {
             print( "Ошибка при обновлении ps_product_shop: " . mysql_error() );
-            return;
+            return false;
         }
         print( "Обновлена запись в ps_product_shop<br>\n" );
         
     }
-}
-
-function duplicate_goods() {
-    echo "<pre>";
-    var_dump($_REQUEST);
-    echo "</pre>";
+    return $product_id;
 }
 
 if( $num = filter_input( INPUT_GET, "num", FILTER_VALIDATE_INT ) ) {

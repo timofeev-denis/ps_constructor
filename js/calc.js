@@ -23,13 +23,9 @@ $( document ).ready( function() {
         $(".item_tid[data-number='" + num + "']").val( $( this ).find("option:selected").data( "parttid" ) );
     });
     
-    $( "#duplicate" ).click( function() {
-        $( ".item" ).each( function() {
-            var num = $( this ).data( "number" );
-            //console.log(num);
-            console.log( $( this ).find("option:selected").text() );
-            $(".item_name[data-number='" + num + "']").val( $( this ).find("option:selected").text() );
-        });
+    $( ".duplicate" ).click( function() {
+        var num = $( this ).data( "tid" );
+        console.log(num);
     });
     
     $( "#new_category" ).change(function() {

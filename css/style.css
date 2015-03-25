@@ -112,3 +112,8 @@ h3 {
 .hidden {
     display: none;
 }
+.duplicate, .delete {
+    cursor: pointer;
+    padding: 0 3px;
+    color: #000;
+}
