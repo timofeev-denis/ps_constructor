@@ -1,4 +1,6 @@
 <?php
+define( TYPE_PRODUCT, 1);
+define( TYPE_COMPONENT, 2);
 $CONFIG[ "db_host" ] = "localhost";
 $CONFIG[ "db_user" ] = "root";
 $CONFIG[ "db_password" ] = "";
