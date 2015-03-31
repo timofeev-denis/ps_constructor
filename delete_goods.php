@@ -18,6 +18,11 @@ if( !$product_id ) {
     die( "Product ID is not specified" );
 }
 mysql_query( "START TRANSACTION" );
+if( !mysql_query( "DELETE FROM {$CONFIG[ "parts_table_name" ]} WHERE tid != 0 AND tid = (SELECT tid FROM {$CONFIG[ "ps_product" ]} WHERE id_product = {$product_id})" ) ) {
+    print( "ERROR (__FILE__:__LINE__): " . mysql_error() );
+    mysql_query("ROLLBACK");
+    exit;
+}
 if( !mysql_query( "DELETE FROM ps_product WHERE id_product = {$product_id}" ) ) {
     print( "ERROR (__FILE__:__LINE__): " . mysql_error() );
     mysql_query("ROLLBACK");

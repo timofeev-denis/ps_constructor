@@ -33,10 +33,12 @@ if( $type === false || $type === NULL ) {
 }
 
 if( isset( $_REQUEST[ "create" ] ) ) {
-    $product_id = save_product( $type );
     if( $type == TYPE_COMPONENT ) {
-        save_component( $type );
+        $component_id = save_component();
+    } else {
+        $component_id = 0;
     }
+    $product_id = save_product( $type, $component_id );
 } else {
     $product_id = 0;
 }

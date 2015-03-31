@@ -149,8 +149,17 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
             return;
         }
         $product = mysql_fetch_array($res);
-        if( $product[ "parts" ] == TYPE_COMPONENT ) {
+        if( $product[ "tid" ] > 0 ) {
             $type = TYPE_COMPONENT;
+            $res = mysql_query( "SELECT * FROM {$CONFIG[ "parts_table_name" ]} WHERE tid = {$product[ "tid" ]}" );
+            if( !$res ) {
+                print( "При определении параметров компонента произошла ошибка." );
+                return;
+            }
+            $data = mysql_fetch_assoc( $res );
+            $product[ "parts_category" ] = $data[ "category" ];
+            $product[ "parts_subcategory" ] = $data[ "subcategory" ];
+            $product[ "parts_price" ] = $data[ "retail_price" ];
             $parts = array();
         } else {
             $parts = unserialize( $product[ "parts" ] );
@@ -313,7 +322,7 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
             } else {
                 ?>
                 <label for='new_price'>Цена: </label><br>
-                <input type='text' id='new_price' name='new_price' class='item_qty' />
+                <input type='text' id='new_price' name='new_price' class='item_qty' value="<?=(isset( $product[ "parts_price" ] ) ? $product[ "parts_price" ] : "")?>" />
                 <?php
             }
             ?>
@@ -398,7 +407,7 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
     <?php
 
 }
-function save_product( $type = TYPE_PRODUCT ) {
+function save_product( $type = TYPE_PRODUCT, $component_id = 0 ) {
     global $CONFIG;
     
     if( $_REQUEST[ "new_name" ] == "" || $_REQUEST[ "new_articul" ] == "" || 
@@ -449,9 +458,10 @@ function save_product( $type = TYPE_PRODUCT ) {
         $parts = serialize( $parts );
     } else {
         $parts = TYPE_COMPONENT;
-        $final_price = filter_input( INPUT_GET, "new_price", FILTER_SANITIZE_NUMBER_FLOAT );
+        $final_price = filter_input( INPUT_POST, "new_price", FILTER_SANITIZE_NUMBER_FLOAT );
     }
     $final_price = round( $final_price , 2 );
+    
     //$q = sprintf( "INSERT INTO goods (articul, category, subcategory, name, retail_price, price, small_scale_price, parts) VALUES ( '%s', '%s', '%s', '%s', '%s', 0, 0, '%s' )",
     //    $_GET[ "new_articul" ], $_GET[ "new_category" ], $_GET[ "new_subcategory" ], $_GET[ "new_name" ], $final_price, $parts );
 
@@ -463,8 +473,8 @@ function save_product( $type = TYPE_PRODUCT ) {
         echo "<h2>Добавление</h2>\n";
         // Реализовать добавление категории и подкатегории
         $date_upd = date( "Y-m-d H:i:s" );
-        $q = sprintf( "INSERT INTO ps_product (id_supplier, id_manufacturer, id_category_default, id_tax_rules_group, active, price, reference, redirect_type, unity, ean13, upc, supplier_reference, location, indexed, cache_default_attribute, date_add, date_upd, parts, content_desc ) 
-    VALUES(1, 1, {$categoryId}, 1, 1, {$final_price}, '{$_REQUEST[ "new_articul" ]}', '', '', 0, '', '', '', 1, 0, '{$date_upd}', '{$date_upd}', '{$parts}', '{$content_description}')" );
+        $q = sprintf( "INSERT INTO ps_product (id_supplier, id_manufacturer, id_category_default, id_tax_rules_group, active, price, reference, redirect_type, unity, ean13, upc, supplier_reference, location, indexed, cache_default_attribute, date_add, date_upd, parts, content_desc, tid ) 
+    VALUES(1, 1, {$categoryId}, 1, 1, {$final_price}, '{$_REQUEST[ "new_articul" ]}', '', '', 0, '', '', '', 1, 0, '{$date_upd}', '{$date_upd}', '{$parts}', '{$content_description}', {$component_id})" );
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_product: " . mysql_error() . "<br>\n");
             print( "Текст запроса: " . $q . "<br>\n");
@@ -479,10 +489,10 @@ function save_product( $type = TYPE_PRODUCT ) {
             return false;
         }
         print( "Добавлена запись в ps_category_product<br>\n" );
-
+        $link_rewrite = translit( $_REQUEST[ "new_name" ] );
         $q = sprintf( "INSERT INTO ps_product_lang 
     (id_product, id_shop, id_lang, description, description_short, link_rewrite, meta_description, meta_keywords, meta_title, name, available_now, available_later)
-    VALUES ({$product_id}, 1, 1, '{$_REQUEST[ "new_description" ]}', 'Short desc', '', '', '', '', '{$_REQUEST[ "new_name" ]}', '', '')" );
+    VALUES ({$product_id}, 1, 1, '{$_REQUEST[ "new_description" ]}', '', '{$link_rewrite}', '', '', '', '{$_REQUEST[ "new_name" ]}', '', '')" );
         if( !mysql_query( $q ) ) {
             print( "Ошибка при добавлении в ps_product_lang: " . mysql_error() );
             return false;
@@ -525,10 +535,12 @@ function save_product( $type = TYPE_PRODUCT ) {
         }
         print( "Обновлена запись в ps_category_product<br>\n" );
 
+        $link_rewrite = translit( $_REQUEST[ "new_name" ] );
         $q = "UPDATE ps_product_lang "
                 . "SET "
                     . "description='{$_REQUEST[ "new_description" ]}', "
-                    . "name='{$_REQUEST[ "new_name" ]}' "
+                    . "name='{$_REQUEST[ "new_name" ]}', "
+                    . "link_rewrite='{$link_rewrite}' "
                 . "WHERE id_product={$product_id}";
         
         if( !mysql_query( $q ) ) {
@@ -642,7 +654,60 @@ function save_product( $type = TYPE_PRODUCT ) {
     return $product_id;
 }
 function save_component() {
-    $final_price = filter_input( INPUT_POST, "new_price", FILTER_VALIDATE_FLOAT );
+    global $CONFIG;
+    $product_id = intval( filter_input( INPUT_POST, "product_id", FILTER_VALIDATE_INT ) );
+//    $edit_product_id = $product_id;
+    $duplicate = intval( filter_input( INPUT_POST, "duplicate", FILTER_VALIDATE_INT ) );
+
+    if( $product_id == 0 || $duplicate == 1 ) {
+        // New component
+        print( "<h1>Save NEW component</h1>" );
+        $final_price = filter_input( INPUT_POST, "new_price", FILTER_VALIDATE_FLOAT );
+        $q = sprintf( "INSERT INTO {$CONFIG[ "parts_table_name" ]} (articul, category, subcategory, name, retail_price) VALUES ( '%s', '%s', '%s', '%s', '%s' )",
+            $_REQUEST[ "new_articul" ], $_REQUEST[ "new_parts_category" ], $_REQUEST[ "new_parts_subcategory" ], $_REQUEST[ "new_name" ], $final_price );
+        if( mysql_query( $q ) ) {
+            echo mysql_insert_id() . "<BR><BR>!!!!\n";
+            return mysql_insert_id();
+        } else {
+            print( "Ошибка при добавлении в {$CONFIG[ "parts_table_name" ]}: " . mysql_error() . "<br>\n");
+            print( "Текст запроса: " . $q . "<br>\n");
+            return false;
+        }
+    } else {
+        print( "<h1>UPDATE component</h1>" );
+        
+        //$product_id
+        $q = "SELECT * FROM {$CONFIG[ "ps_product" ]} WHERE id_product={$product_id}";
+        $res = mysql_query( $q );
+        if( !$res ) {
+            print( "Ошибка при чтении {$CONFIG[ "ps_product" ]}: " . mysql_error() . "<br>\n");
+            print( "Текст запроса: " . $q . "<br>\n");
+            return false;
+        }
+        $data = mysql_fetch_assoc( $res );
+        if( $data[ "tid" ] > 0 ) {
+            $tid = $data[ "tid" ];
+        } else {
+            print( "tid = 0 для товара с id = {$product_id}<br>\n");
+            return false;
+        }
+        $final_price = filter_input( INPUT_POST, "new_price", FILTER_VALIDATE_FLOAT );
+        $q = sprintf( "UPDATE {$CONFIG[ "parts_table_name" ]} SET "
+            . "articul='{$_REQUEST[ "new_articul" ]}', "
+            . "category='{$_REQUEST[ "new_parts_category" ]}', "
+            . "subcategory='{$_REQUEST[ "new_parts_subcategory" ]}', "
+            . "name='{$_REQUEST[ "new_name" ]}', "
+            . "retail_price='{$final_price}' "
+            . "WHERE tid={$tid}" );
+        if( mysql_query( $q ) ) {
+            echo $tid . "updated!<BR><BR>\n";
+            return $tid;
+        } else {
+            print( "Ошибка при ообновлении {$CONFIG[ "parts_table_name" ]}: " . mysql_error() . "<br>\n");
+            print( "Текст запроса: " . $q . "<br>\n");
+            return false;
+        }
+    }
 
 }
 function delete_product_image( $product_id ) {
@@ -679,7 +744,21 @@ function delete_product_image( $product_id ) {
     }
     return true;
 }
-
+function translit( $text ) {
+    $find = array('А','а','Б','б','В','в','Г','г','Д','д','Е','е','Ё','ё',
+        'Ж','ж','З','з','И','и','Й','й','К','к','Л','л','М','м',
+        'Н','н','О','о','П','п','Р','р','С','с','Т','т','У','у',
+        'Ф','ф','Х','х','Ц','ц','Ч','ч','Ш','ш','Щ','щ','Ъ','ъ',
+        'Ы','ы','Ь','ь','Э','э','Ю','ю','Я','я', '№',' ');
+ 
+    $replace = array('A','a','B','b','V','v','G','g','D','d','E','e','Yo','yo',
+        'Zh','zh','Z','z','I','i','J','j','K','k','L','l','M','m',
+        'N','n','O','o','P','p','R','r','S','s','T','t','U','u','F',
+        'f','H','h','Ts','ts','Ch','ch','Sh','sh','Sch','sch',
+        '','','Y','y','','','E','e','Yu','yu','Ya','ya', '','_');
+ 
+    return strtolower( preg_replace( '/[^\w\d\s_-]*/', '', str_replace( $find, $replace, $text ) ) );
+}
 if( $num = filter_input( INPUT_GET, "num", FILTER_VALIDATE_INT ) ) {
     //echo "Session: ";
     //print_r( $_SESSION[ "parts_categories" ] );
