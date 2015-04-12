@@ -138,11 +138,13 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
     }
     if( $product_id ) {
         // Редактирование
-        $res = mysql_query("SELECT p.*, pl.name pname, pl.description, cl.name cname 
-        FROM {$CONFIG['ps_product']} p, {$CONFIG['ps_product_lang']} pl, {$CONFIG['ps_category_lang']} cl 
+        $res = mysql_query("SELECT p.*, pl.name pname, pl.description, cl.name cname, pi.id_image 
+        FROM {$CONFIG['ps_product']} p, {$CONFIG['ps_product_lang']} pl, {$CONFIG['ps_category_lang']} cl, ps_image pi 
         WHERE p.id_product = pl.id_product 
               AND pl.id_lang=1 
               AND cl.id_category=p.id_category_default
+              AND pi.id_product=p.id_product              
+              AND pi.cover=1
               AND p.id_product=" . $product_id );
         if( !$res ) {
             print( "Товар не найден." );
@@ -321,6 +323,14 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
         </div>
         <div class="clearfix"></div>
         <div class="param w200">
+            <?php
+            if( intval( $product[ "id_image" ] ) > 0 ) {
+                $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( intval( $product[ "id_image" ] ), 1 ) );
+                printf( "<img src='%s/%s.jpg' width=190>", $images_path, intval( $product[ "id_image" ] ) );
+            }
+            ?>
+        </div>
+        <div class="param w200">
             <label for='new_image'>Изображение: </label><br>
             <input type="hidden" name="MAX_FILE_SIZE" value="30000000" />
             <input type="file" id="new_image" name="new_image" />
@@ -353,7 +363,7 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
         ?>
 
         <h3>Состав нового товара:</h3>
-        <div id="parts">
+        <div id="parts" class="bottom-border">
             <div class="components_title">
                     <div class="param w200">
                             Категория:<br>
@@ -384,13 +394,26 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
             print_item_selector( $parts_categories, "", "", $i++ );
         }
         ?>
+		<input type="button" class="btn add_item" value="Ещё">
         </div>
-        <input type="button" class="btn add_item" value="Ещё">
+        
 
         <div class="clearfix"></div>
     <?php
     }
+    if( $product_id ) {
     ?>
+	<div class="bottom-border">
+        <?php
+        $res = mysql_query( "SELECT conversion_rate FROM ps_currency WHERE iso_code='RUB'" );
+        if( $res ) {
+            $data = mysql_result( $res, 0 );
+        }
+        ?>
+        
+            <h3>Цена товара: <?= round( $product[ "price" ] * $data, 2 ) ?> рублей по курсу <?= round( $data, 2 ) ?> </h3>
+	</div>
+    <?php } ?>
     <div>
         <input type='submit' id="create" name="create" value='Сохранить' />
     </div>

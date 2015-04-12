@@ -104,7 +104,7 @@ input.item_qty {
 .clearfix {
     clear: both;
 }
-.part, .buttons {
+.part, .buttons, .bottom-border {
     border-bottom: 1px solid #888;
 }
 h3 {
