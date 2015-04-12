@@ -1,5 +1,8 @@
 <?php
 @session_start();
+
+include_once 'config.php';
+
 function print_table_header() {
     print( "<h3>Последние добавленные товары:</h3>\n" );
     print( "<table width=100% border=1>\n" );
@@ -127,7 +130,7 @@ function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
 <?php
 }
 
-function print_add_form( $product_id = 0 ) {
+function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
     global $CONFIG;
     $product = array();
     if( $product_id == 0 ) {
@@ -135,18 +138,25 @@ function print_add_form( $product_id = 0 ) {
     }
     if( $product_id ) {
         // Редактирование
-        $res = mysql_query("SELECT p.*, pl.name pname, pl.description, cl.name cname 
-        FROM {$CONFIG['ps_product']} p, {$CONFIG['ps_product_lang']} pl, {$CONFIG['ps_category_lang']} cl 
+        $res = mysql_query("SELECT p.*, pl.name pname, pl.description, cl.name cname, pi.id_image 
+        FROM {$CONFIG['ps_product']} p, {$CONFIG['ps_product_lang']} pl, {$CONFIG['ps_category_lang']} cl, ps_image pi 
         WHERE p.id_product = pl.id_product 
               AND pl.id_lang=1 
               AND cl.id_category=p.id_category_default
+              AND pi.id_product=p.id_product              
+              AND pi.cover=1
               AND p.id_product=" . $product_id );
         if( !$res ) {
             print( "Товар не найден." );
             return;
         }
         $product = mysql_fetch_array($res);
-        $parts = unserialize( $product[ "parts" ] );
+        if( $product[ "parts" ] == TYPE_COMPONENT ) {
+            $type = TYPE_COMPONENT;
+            $parts = array();
+        } else {
+            $parts = unserialize( $product[ "parts" ] );
+        }
         $items = array();
         while( list( $k, $v ) = @each( $parts ) ) {
             if( $k != "multiplier" ) {
@@ -182,6 +192,7 @@ function print_add_form( $product_id = 0 ) {
     <div class="part">        
         <input type="hidden" name="product_id" value="<?=$product_id?>" />
         <input type="hidden" name="duplicate" value="<?=intval( filter_input( INPUT_GET, "duplicate", FILTER_VALIDATE_INT ) )?>" />
+        <input type="hidden" name="type" value="<?=$type?>" />
         <h3>Параметры нового товара:</h3>
         <div class="param w200">
             <label for='new_name'>Название: </label><br>
@@ -193,35 +204,54 @@ function print_add_form( $product_id = 0 ) {
         </div>
         <div class="param w200">
             <label for='new_category'>Категория: </label><br>
-            <input type="button" value="+" id="add_category" title="Нажмите, чтобы создать новую категорию" />
-            <input type="text" id="new_custom_category" name="new_category" class="hidden" disabled/>
             <select id='new_category' name='new_category' class='new category' data-number='0'>
                 <option value='-' class='new'>-</option>
-        <?php
-        //$res = mysql_query( "SELECT DISTINCT category FROM {$CONFIG['goods_table_name']} ORDER BY 1" );
-        $res = mysql_query( "SELECT cl.id_category, cl.name FROM {$CONFIG[ "ps_category_lang" ]} cl, ps_category c WHERE cl.id_lang=1 AND cl.id_category = c.id_category AND c.id_parent=2 AND c.active=1" );
-        if( $res ) {
-            while ($data = mysql_fetch_array($res)) {
-                $selected = "";
-                if( $data[ "id_category" ] == $product[ "category" ] || $data[ "id_category" ] == $product[ "subcategory" ] ) {
-                    $selected = "selected";
+            <?php
+            //$res = mysql_query( "SELECT DISTINCT category FROM {$CONFIG['goods_table_name']} ORDER BY 1" );
+            $res = mysql_query( "SELECT cl.id_category, cl.name FROM {$CONFIG[ "ps_category_lang" ]} cl, ps_category c WHERE cl.id_lang=1 AND cl.id_category = c.id_category AND c.id_parent=2 AND c.active=1" );
+            if( $res ) {
+                while ($data = mysql_fetch_array($res)) {
+                    $selected = "";
+                    if( $data[ "id_category" ] == $product[ "category" ] || $data[ "id_category" ] == $product[ "subcategory" ] ) {
+                        $selected = "selected";
+                    }
+                    printf( "<option value='%s' class='new' %s>%s</option>\n", $data[ "id_category" ], $selected, $data[ "name" ] );
                 }
-                printf( "<option value='%s' class='new' %s>%s</option>\n", $data[ "id_category" ], $selected, $data[ "name" ] );
+            } else {
+                printf( "<option value='ОШИБКА' class='new'>%s</option>\n", mysql_error() );
             }
-        } else {
-            printf( "<option value='ОШИБКА' class='new'>%s</option>\n", mysql_error() );
-        }
-        ?>
+            ?>
             </select>
-            
+            <?php
+            if( $type == TYPE_COMPONENT) {
+                print( "<div class='clearfix'></div>\n" );
+                print( "<input type='button' value='+' id='add_parts_category' title='Нажмите, чтобы создать новую категорию' />\n" );
+                print( "<input type='text' id='new_custom_parts_category' name='new_parts_category' class='hidden' disabled/>\n" );
+                print( "<select id='new_parts_category' name='new_parts_category' class='new category' data-number='0'>\n" );
+                print( "    <option value='-' class='new'>-</option>\n" );
+                $res = mysql_query( "SELECT DISTINCT category FROM {$CONFIG['parts_table_name']} ORDER BY 1" );
+                //$res = mysql_query( "SELECT cl.id_category, cl.name FROM {$CONFIG[ "ps_category_lang" ]} cl, ps_category c WHERE cl.id_lang=1 AND cl.id_category = c.id_category AND c.id_parent=2 AND c.active=1" );
+                if( $res ) {
+                    $selected = "";
+                    while( $data = mysql_fetch_array( $res ) ) {
+                        $selected = "";
+                        if( $data[ "category" ] == $product[ "parts_category" ] ) {
+                            $selected = "selected";
+                        }
+                        printf( "<option value='%s' class='new' %s>%s</option>\n", $data[ "category" ], $selected, $data[ "category" ] );
+                    }
+                } else {
+                    printf( "<option value='ОШИБКА' class='new'>%s</option>\n", mysql_error() );
+                }
+                print( "</select>\n" );
+            }
+            ?>
+
         </div>
         <div class="param w200">
             <label for="new_subcategory">Подкатегория: </label><br>
-            <input type="button" value="+" id="add_subcategory" title="Нажмите, чтобы создать новую подкатегорию" disabled />
-            <input type="text" id="new_custom_subcategory" name="new_subcategory" class="hidden" disabled />
-            
                 <?php
-                if( @intval( $_REQUEST[ "product_id" ] ) == 0 ) {
+                if( @intval( $_REQUEST[ "product_id" ] ) == 0 && intval( $product_id ) == 0 ) {
                     // Добавление товара
                     print( "<select id='new_subcategory' name='new_subcategory' class='new subcategory' data-number='0' disabled>" );
                     print( "<option value='-' class='new'>Выберите категорию</option>" );
@@ -242,13 +272,63 @@ function print_add_form( $product_id = 0 ) {
                         printf( "<option value='ОШИБКА' class='new'>%s</option>\n", mysql_error() );
                     }
                 }
+                print( "</select>\n" );
+                
+                if( $type == TYPE_COMPONENT ) {
+                    print( "<div class='clearfix'></div>\n" );
+                    print( "<input type='button' value='+' id='add_parts_subcategory' title='Нажмите, чтобы создать новую подкатегорию' disabled />\n" );
+                    print( "<input type='text' id='new_custom_parts_subcategory' name='new_parts_subcategory' class='hidden' disabled />\n" );
+                    if( @intval( $_REQUEST[ "product_id" ] ) == 0 ) {
+                        // Добавление товара
+                        print( "<select id='new_parts_subcategory' name='new_parts_subcategory' class='new subcategory' disabled>" );
+                        print( "<option value='-' class='new'>Выберите категорию</option>" );
+                    } else {
+                        // Редактирование товара
+                        print( "<select id='new_parts_subcategory' name='new_parts_subcategory' class='new subcategory'>" );
+                        print( "<option value='-' class='new'>-</option>" );
+                        $res = mysql_query( "SELECT DISTINCT subcategory FROM {$CONFIG[ "parts_table_name" ]} WHERE category='{$product[ "parts_category" ]}' ORDER BY 1" );
+                        if( $res ) {
+                            while ($data = mysql_fetch_array($res)) {
+                                $selected = "";
+                                if( $data[ "subcategory" ] == $product[ "parts_subcategory" ] ) {
+                                    $selected = "selected";
+                                }
+                                printf( "<option value='%s' class='new' %s>%s</option>\n", $data[ "subcategory" ], $selected, $data[ "subcategory" ] );
+                            }
+                        } else {
+                            printf( "<option value='ОШИБКА' class='new'>%s</option>\n", mysql_error() );
+                        }
+                    }
+                    print( "</select>\n" );
+                }
                 ?>
                 
-            </select>
+            
         </div>
         <div class="param w200">
-            <label for='new_articul'>Наценка: </label><br>
-            <input type='text' id='new_multiplier' name='new_multiplier' class='item_qty' value="<?=(isset( $product[ "multiplier" ] ) ? $product[ "multiplier" ] : $CONFIG[ "margin" ])?>" />%
+            <?php
+            if( $type == TYPE_PRODUCT ) {
+                ?>
+                <label for='new_multiplier'>Наценка: </label><br>
+                <input type='text' id='new_multiplier' name='new_multiplier' class='item_qty' value="<?=(isset( $product[ "multiplier" ] ) ? $product[ "multiplier" ] : $CONFIG[ "margin" ])?>" />%
+                <?php
+            } else {
+                ?>
+                <label for='new_price'>Цена: </label><br>
+                <input type='text' id='new_price' name='new_price' class='item_qty' />
+                <?php
+            }
+            ?>
+                
+        </div>
+        <div class="clearfix"></div>
+        <div class="param w200">
+            <?php
+            if( intval( $product[ "id_image" ] ) > 0 ) {
+                $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( intval( $product[ "id_image" ] ), 1 ) );
+                printf( "<img src='%s/%s.jpg' width=190>", $images_path, intval( $product[ "id_image" ] ) );
+            }
+            ?>
         </div>
         <div class="param w200">
             <label for='new_image'>Изображение: </label><br>
@@ -268,91 +348,82 @@ function print_add_form( $product_id = 0 ) {
         <br>
     </div>
     <?php
-    // Категории из parts_table
-    $parts_categories = array();
-    $res = mysql_query( "SELECT DISTINCT category FROM {$CONFIG['parts_table_name']} ORDER BY 1" );
-    if( $res ) {
-        while ($data = mysql_fetch_array($res)) {
-            $parts_categories[] = $data[ "category" ];
+    if( $type == TYPE_PRODUCT ) {
+        // Категории из parts_table
+        $parts_categories = array();
+        $res = mysql_query( "SELECT DISTINCT category FROM {$CONFIG['parts_table_name']} ORDER BY 1" );
+        if( $res ) {
+            while ($data = mysql_fetch_array($res)) {
+                $parts_categories[] = $data[ "category" ];
+            }
+            $_SESSION[ "parts_categories" ] = $parts_categories;
+        } else {
+            $parts_categories[] = mysql_error();
         }
-        $_SESSION[ "parts_categories" ] = $parts_categories;
-    } else {
-        $parts_categories[] = mysql_error();
-    }
-    ?>
-    
-    <h3>Состав нового товара:</h3>
-    <div id="parts">
-        <div class="components_title">
-                <div class="param w200">
-                        Категория:<br>
-                </div>
-                <div class="param w200">
-                        Подкатегория:<br>
-                </div>
-                <div class="param w200">
-                        Название - цена:<br>
-                </div>
-                <div class="param w100">
-                        Кол-во:<br>
-                </div>
-                <div class="param w100">
-                        Удалить<br>
-                </div>
-                <div class="clearfix"></div>
-        </div>
-    <?php
-    //print_r( $parts );
-    //print_r( $items );
-    $i = 1;
-    $k = "";
-    if( @count( $items ) > 0 ) {
-        foreach( $items as $k => $v ) {
-            //print( $k . " / " . $v . " / " . $parts[ $v ] . " / " . ++$i . "<br>\n" );
-            print_item_selector( $parts_categories, $v, @$parts[ $v ], $i++ );
-        }
-    } else {
-        print_item_selector( $parts_categories, "", "", $i++ );
-    }
-    /*
-    do {
-        list( $k, $v ) = @each( $items );
-        //print_item_selector($parts_categories, @$items[ $i ], @$parts[ @$items[ $i ] ], ++$i);
-        print( $k . " / " . $v . " / " . $parts[ $v ] . " / " . ++$i . "<br>\n" );
-        
-    } while( count( $items ) );
-     */
-    ?>
-    </div>
-    <input type="button" class="btn add_item" value="Ещё">
-    
-    <div class="clearfix"></div>
+        ?>
 
+        <h3>Состав нового товара:</h3>
+        <div id="parts" class="bottom-border">
+            <div class="components_title">
+                    <div class="param w200">
+                            Категория:<br>
+                    </div>
+                    <div class="param w200">
+                            Подкатегория:<br>
+                    </div>
+                    <div class="param w200">
+                            Название - цена:<br>
+                    </div>
+                    <div class="param w100">
+                            Кол-во:<br>
+                    </div>
+                    <div class="param w100">
+                            Удалить<br>
+                    </div>
+                    <div class="clearfix"></div>
+            </div>
+        <?php
+        $i = 1;
+        $k = "";
+        if( @count( $items ) > 0 ) {
+            foreach( $items as $k => $v ) {
+                //print( $k . " / " . $v . " / " . $parts[ $v ] . " / " . ++$i . "<br>\n" );
+                print_item_selector( $parts_categories, $v, @$parts[ $v ], $i++ );
+            }
+        } else {
+            print_item_selector( $parts_categories, "", "", $i++ );
+        }
+        ?>
+		<input type="button" class="btn add_item" value="Ещё">
+        </div>
+        
+
+        <div class="clearfix"></div>
+    <?php
+    }
+    if( $product_id ) {
+    ?>
+	<div class="bottom-border">
+        <?php
+        $res = mysql_query( "SELECT conversion_rate FROM ps_currency WHERE iso_code='RUB'" );
+        if( $res ) {
+            $data = mysql_result( $res, 0 );
+        }
+        ?>
+        
+            <h3>Цена товара: <?= round( $product[ "price" ] * $data, 2 ) ?> рублей по курсу <?= round( $data, 2 ) ?> </h3>
+	</div>
+    <?php } ?>
     <div>
         <input type='submit' id="create" name="create" value='Сохранить' />
     </div>
     </form>
     <?php
-//    print( "" );
-//    print( "<select class='item_category' data-number='1'>\n" );
-//    foreach ($parts_categories as $value) {
-//        printf( "<option value='%s'>%s</option>\n", $value, $value );
-//    }
-//    print( "</select><br>\n" );
-    // Подкатегории
-//    print( "<select class='subcategory' data-number='1' disabled>\n" );
-//    print( "<option value='-' class='new'>Выберите категорию</option>\n" );
-//    print( "</select><br>\n" );
-    // Запчасти
-//    print( "<select id='item1' name='item[]' class='item' data-number='1' disabled>\n" );
-//    print( "<option value='-' class='new'>Выберите подкатегорию</option>\n" );
-//    print( "</select> x <input type='text' name='qty[]' class='item_qty'></TD></TR>\n" );
-    //
-    // Компонент №2
-    //
+
 }
-function save() {
+function save_product( $type = TYPE_PRODUCT ) {
     global $CONFIG;
+    
     if( $_REQUEST[ "new_name" ] == "" || $_REQUEST[ "new_articul" ] == "" || 
         $_REQUEST[ "new_category" ] == "" ) {
         print( "Товар не сохранён, так как не указаны его параметры." );
@@ -370,32 +441,40 @@ function save() {
     }
     // Расчёт стоимости нового товара
     $final_price = 0;
-    //$content_description = "Состав изделия:<br><br>\n";
     $content_description = "";
-    $parts = array();
-    foreach( $_REQUEST[ "item" ] as $k => $v ) {
-        printf( "%s * %s + \n", $v, intval( $_REQUEST[ "qty" ][ $k ] ));
-        $final_price += $v * intval( $_REQUEST[ "qty" ][ $k ] );
-        $content_description .= $_REQUEST[ "item_name" ][ $k ] . " x " . intval( $_REQUEST[ "qty" ][ $k ] ) . "<br>\n";
-        if(intval( $parts[ $_REQUEST[ "item_tid" ][ $k ] ] ) == 0 ) {
-            $parts[ $_REQUEST[ "item_tid" ][ $k ] ] = intval( $_REQUEST[ "qty" ][ $k ] );
-        } else {
-            //error_log( "Компонент с tid=" . $_GET[ "item_tid" ][ $k ] . " добавлен несколько раз." );
-            print( "ВНИМАНИЕ! Компонент с tid=" . $_REQUEST[ "item_tid" ][ $k ] . " добавлен несколько раз." );
+    if( $type == TYPE_PRODUCT ) {
+        $parts = array();
+        foreach( $_REQUEST[ "item" ] as $k => $v ) {
+            printf( "%s * %s + \n", $v, intval( $_REQUEST[ "qty" ][ $k ] ));
+            $final_price += $v * intval( $_REQUEST[ "qty" ][ $k ] );
+            $content_description .= $_REQUEST[ "item_name" ][ $k ] . " x " . intval( $_REQUEST[ "qty" ][ $k ] ) . "<br>\n";
+            if(intval( $parts[ $_REQUEST[ "item_tid" ][ $k ] ] ) == 0 ) {
+                $parts[ $_REQUEST[ "item_tid" ][ $k ] ] = intval( $_REQUEST[ "qty" ][ $k ] );
+            } else {
+                //error_log( "Компонент с tid=" . $_GET[ "item_tid" ][ $k ] . " добавлен несколько раз." );
+                print( "ВНИМАНИЕ! Компонент с tid=" . $_REQUEST[ "item_tid" ][ $k ] . " добавлен несколько раз." );
+            }
         }
+        //printf( " = " . $final_price . "<br />\n" );
+        //printf( "%s / 100 * %s<br>\n", $final_price, $final_price, $CONFIG[ "margin" ] );
+        // Если множитель > 1, то умножаем на него, иначе - умножаем на 1
+        //$final_price += $final_price / 100 * ( intval( $_REQUEST[ "new_multiplier" ] ) > 0 ? intval( $_REQUEST[ "new_multiplier" ] ) : 1 );
+        if( intval( $_REQUEST[ "new_multiplier" ] ) > 0 ) {
+            $final_price += $final_price / 100 * intval( $_REQUEST[ "new_multiplier" ] );
+        }
+
+        print( $CONFIG[ "margin" ] . "% = ". $final_price . "<br />\n" );
+        if( $final_price == 0 ) {
+            print( "Товар не сохранён, так как не указаны его составные части." );
+            return false;
+        }
+        $parts[ "multiplier" ] = intval( $_REQUEST[ "new_multiplier" ] );
+        $parts = serialize( $parts );
+    } else {
+        $parts = TYPE_COMPONENT;
+        $final_price = filter_input( INPUT_GET, "new_price", FILTER_SANITIZE_NUMBER_FLOAT );
     }
-    //printf( " = " . $final_price . "<br />\n" );
-    //printf( "%s / 100 * %s<br>\n", $final_price, $final_price, $CONFIG[ "margin" ] );
-    // Если множитель > 1, то умножаем на него, иначе - умножаем на 1
-    $final_price += $final_price / 100 * ( intval( $_REQUEST[ "new_multiplier" ] ) > 0 ? intval( $_REQUEST[ "new_multiplier" ] ) : 1 );
     $final_price = round( $final_price , 2 );
-    print( $CONFIG[ "margin" ] . "% = ". $final_price . "<br />\n" );
-    $parts[ "multiplier" ] = intval( $_REQUEST[ "new_multiplier" ] );
-    $parts = serialize( $parts );
-    if( $final_price == 0 ) {
-        print( "Товар не сохранён, так как не указаны его составные части." );
-        return false;
-    }
     //$q = sprintf( "INSERT INTO goods (articul, category, subcategory, name, retail_price, price, small_scale_price, parts) VALUES ( '%s', '%s', '%s', '%s', '%s', 0, 0, '%s' )",
     //    $_GET[ "new_articul" ], $_GET[ "new_category" ], $_GET[ "new_subcategory" ], $_GET[ "new_name" ], $final_price, $parts );
 
@@ -585,7 +664,10 @@ function save() {
     }
     return $product_id;
 }
+function save_component() {
+    $final_price = filter_input( INPUT_POST, "new_price", FILTER_VALIDATE_FLOAT );
 
+}
 function delete_product_image( $product_id ) {
     global $CONFIG;
     if( !$res = mysql_query( "SELECT id_image FROM ps_image WHERE id_product = {$product_id} ORDER BY cover DESC" ) ) {

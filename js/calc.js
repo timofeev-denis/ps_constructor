@@ -54,6 +54,29 @@ $( document ).ready( function() {
         });
     });
     
+    $( "#new_parts_category" ).change(function() {
+        //console.log( $(this).val() );
+        $.ajax({
+            dataType: "json",
+            url: "get_parts_subcategories.php",
+            data: {
+                parts_category: $(this).val()
+            },
+            success: function(data) {
+                var options = "";
+                for( var i = 0; i < data.length; i++ ) {
+                    //console.log( data[ i ] );
+                    options += "<option value='" + data[ i ] + "'>" + data[ i ] + "</option>";              
+                }
+                
+                $("#add_parts_subcategory").prop( "disabled", false ); // custom parts subcategory button
+                $("#new_parts_subcategory").prop('disabled', false); // parst subcategories list
+                $("#new_parts_subcategory option").remove();
+                $("#new_parts_subcategory").append(options);
+            }
+        });
+    });
+    
     //$( ".item_category" ).change(function() {
     $( document.body ).on( "change", ".item_category", function() {
         console.log( $(this).val() );
@@ -107,24 +130,25 @@ $( document ).ready( function() {
         });
     });
    
-    $("#add_category").click(function() {
-       $("#new_category").css( "display", "none" );
-       $("#new_category").prop( "disabled", true );
-       $("#new_custom_category").prop( "disabled", false );
-       $("#new_custom_category").css( "display", "inline" );
-       $("#new_custom_category").focus();
+    $("#add_parts_category").click(function() {
+       $("#new_parts_category").css( "display", "none" );
+       $("#new_parts_category").prop( "disabled", true );
+       $("#new_custom_parts_category").prop( "disabled", false );
+       $("#new_custom_parts_category").css( "display", "inline" );
+       $("#new_custom_parts_category").focus();
        // Показываем поле ввода наименования новой подкатегории
-       $("#new_subcategory").css( "display", "none" );
-       $("#new_subcategory").prop( "disabled", true );
-       $("#new_custom_subcategory").prop( "disabled", false );
-       $("#new_custom_subcategory").css( "display", "inline" );
+       $("#new_parts_subcategory").css( "display", "none" );
+       $("#new_parts_subcategory").prop( "disabled", true );
+       $("#new_custom_parts_subcategory").prop( "disabled", false );
+       $("#new_custom_parts_subcategory").css( "display", "inline" );
     });
     
-    $("#add_subcategory").click(function() {
-       $("#new_subcategory").css( "display", "none" );
-       $("#new_subcategory").prop( "disabled", "true" );
-       $("#new_custom_subcategory").css( "display", "inline" );
-       $("#new_custom_subcategory").focus();
+    $("#add_parts_subcategory").click(function() {
+       $("#new_parts_subcategory").css( "display", "none" );
+       $("#new_parts_subcategory").prop( "disabled", true );
+       $("#new_custom_parts_subcategory").prop( "disabled", false );
+       $("#new_custom_parts_subcategory").css( "display", "inline" );
+       $("#new_custom_parts_subcategory").focus();
     });
     
     $( document.body ).on( "click", ".remove_item", function() {

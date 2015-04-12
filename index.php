@@ -22,7 +22,7 @@ if( isset( $_REQUEST[ "create" ] ) ) {
     echo "<pre>";
     //var_dump($_GET);
     echo "</pre>";
-include './menu.html';
+include './menu.php';
 //print_add_form();
 
 print_table_header();
