@@ -194,6 +194,7 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
         <input type="hidden" name="duplicate" value="<?=intval( filter_input( INPUT_GET, "duplicate", FILTER_VALIDATE_INT ) )?>" />
         <input type="hidden" name="type" value="<?=$type?>" />
         <h3>Параметры нового товара:</h3>
+    <div class="param w200">
         <div class="param w200">
             <label for='new_name'>Название: </label><br>
             <input type='text' id='new_name' name='new_name' class='new' value="<?=$product[ "pname" ]?>"/><br>
@@ -319,29 +320,29 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
                 <?php
             }
             ?>
-                
         </div>
-        <div class="clearfix"></div>
-        <div class="param w200">
+        </div>
+        
+        <div class="param w300">
             <label for='new_image'>Изображение: </label><br>
             <?php
             if( intval( $product[ "id_image" ] ) > 0 ) {
                 $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( intval( $product[ "id_image" ] ), 1 ) );
-                printf( "<img src='%s/%s.jpg' width=190>", $images_path, intval( $product[ "id_image" ] ) );
+                printf( "<img src='%s/%s-large_default.jpg'>", $images_path, intval( $product[ "id_image" ] ) );
             }
             ?>
             <input type="hidden" name="MAX_FILE_SIZE" value="30000000" />
             <input type="file" id="new_image" name="new_image" />
         </div>
-        <div class="clearfix"></div>
-        <br>
-        <label for='new_description'>Описание: </label><br>
-        <textarea name="new_description" id="new_description">
-            <?=$product[ "description" ]?>
-        </textarea>
-        <script type="text/javascript">
-            CKEDITOR.replace( 'new_description' );
-        </script>
+        <div class="param w600">
+            <label for='new_description'>Описание: </label><br>
+            <textarea name="new_description" id="new_description">
+                <?=$product[ "description" ]?>
+            </textarea>
+            <script type="text/javascript">
+                CKEDITOR.replace( 'new_description' );
+            </script>
+        </div>
         <div class="clearfix"></div>
         <br>
     </div>

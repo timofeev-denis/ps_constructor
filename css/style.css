@@ -61,7 +61,7 @@ input[type=text], select.new, input[type=button], input[type=file], input[type=s
     margin: 5px;
 }
 input[type=text], select.new {
-    width: 70%;
+    width: 90%;
 }
 
 table.new_product {
@@ -85,11 +85,17 @@ input.item_qty {
     float: left;
     text-align: right;
 }
+.param img {
+    padding: 5px;
+}
 .w100 {
     width: 100px;
 }
 .w200 {
     width: 200px;
+}
+.w300 {
+    width: 300px;
 }
 .w400 {
     width: 400px;
