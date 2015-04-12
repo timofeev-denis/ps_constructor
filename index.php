@@ -27,7 +27,15 @@ include './menu.php';
 
 print_table_header();
 //$result = mysql_query("SELECT articul, name, category, subcategory, price, small_scale_price, retail_price FROM {$CONFIG['goods_table_name']} ORDER BY tid DESC LIMIT 0, 20");
-$result = mysql_query("SELECT p.*, pl.name pname, pl.description, cl.name cname 
+$res = mysql_query( "SELECT conversion_rate FROM ps_currency WHERE iso_code='RUB'" );
+if( $res ) {
+    $rate = mysql_result( $res, 0 );
+} else {
+    echo "Не удалось определить курс рубля. Цены указаны в ЕВРО.<br />\n";
+    $rate = 1;
+}
+
+$result = mysql_query("SELECT p.*, (p.price * {$rate}) price_rub, pl.name pname, pl.description, cl.name cname 
 FROM {$CONFIG['ps_product']} p, {$CONFIG['ps_product_lang']} pl, {$CONFIG['ps_category_lang']} cl 
 WHERE p.id_product = pl.id_product 
       AND pl.id_lang=1 

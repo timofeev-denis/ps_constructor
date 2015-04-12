@@ -36,7 +36,7 @@ function print_table_row($row) {
 </tr>\n\n", $row[ "id_product" ], $row[ "id_product" ], $row[ "pname" ], 
             $row[ "reference" ], $row[ "reference" ], $row[ "id_product" ], 
             $row[ "pname" ], $row[ "content_desc" ], $row[ "cname" ], 
-            $row[ "price" ], $row[ "price" ] * 1.18 );
+            $row[ "price_rub" ], $row[ "price_rub" ] * 1.18 );
 }
 
 function print_item_selector( &$parts_categories, $tid, $qty, $num ) {
