@@ -323,15 +323,13 @@ function print_add_form( $product_id = 0, $type = TYPE_PRODUCT ) {
         </div>
         <div class="clearfix"></div>
         <div class="param w200">
+            <label for='new_image'>Изображение: </label><br>
             <?php
             if( intval( $product[ "id_image" ] ) > 0 ) {
                 $images_path = $CONFIG[ "imagesdir" ] . "/p/" . implode( "/", str_split( intval( $product[ "id_image" ] ), 1 ) );
                 printf( "<img src='%s/%s.jpg' width=190>", $images_path, intval( $product[ "id_image" ] ) );
             }
             ?>
-        </div>
-        <div class="param w200">
-            <label for='new_image'>Изображение: </label><br>
             <input type="hidden" name="MAX_FILE_SIZE" value="30000000" />
             <input type="file" id="new_image" name="new_image" />
         </div>
